@@ -28,7 +28,7 @@ public class ProductController {
         return ResponseEntity.ok(productService.saveProduct(product, image));
     }
 
-    @PostMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasRole(ADMIN)")
     public ResponseEntity<ProductDTO> updateProduct(@PathVariable("id") Long id,
                                                     @Valid @RequestPart("product") ProductDTO productDTO,

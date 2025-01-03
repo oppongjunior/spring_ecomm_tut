@@ -24,7 +24,7 @@ public class ProductService {
     private final ProductRepository productRepository;
     private final ProductMapper productMapper;
 
-    private final String UPLOAD_DIR = "src/main/resources/static";
+    private final String UPLOAD_DIR = "src/main/resources/static/";
 
     @Transactional
     public ProductDTO saveProduct(ProductDTO productDTO, MultipartFile image) throws IOException {
