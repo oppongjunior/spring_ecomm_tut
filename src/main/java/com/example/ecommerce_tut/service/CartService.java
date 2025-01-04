@@ -1,6 +1,7 @@
 package com.example.ecommerce_tut.service;
 
 import com.example.ecommerce_tut.dto.CartDTO;
+import com.example.ecommerce_tut.exception.ResourceNotFoundException;
 import com.example.ecommerce_tut.mapper.CartMapper;
 import com.example.ecommerce_tut.model.Cart;
 import com.example.ecommerce_tut.model.CartItem;
@@ -24,8 +25,8 @@ public class CartService {
     private final CartMapper cartMapper;
 
     public CartDTO addCart(Long productId, Long userId, Integer quantity) {
-        User user = userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User Not Found"));
-        Product product = productRepository.findById(productId).orElseThrow(() -> new RuntimeException("Product Not Found"));
+        User user = userRepository.findById(userId).orElseThrow(() -> new ResourceNotFoundException("User Not Found"));
+        Product product = productRepository.findById(productId).orElseThrow(() -> new ResourceNotFoundException("Product Not Found"));
 
         Cart cart = cartRepository.findByUserId(userId).orElse(new Cart(null, user, new ArrayList<>()));
         Optional<CartItem> cartItem = cart.getItems().stream().filter(item -> item.getProduct().getId().equals(productId)).findFirst();
@@ -41,12 +42,12 @@ public class CartService {
     }
 
     public CartDTO getCart(Long userId) {
-        Cart cart = cartRepository.findByUserId(userId).orElseThrow(() -> new RuntimeException("Resource Not Found"));
+        Cart cart = cartRepository.findByUserId(userId).orElseThrow(() -> new ResourceNotFoundException("Resource Not Found"));
         return cartMapper.toDTO(cart);
     }
 
     public void clearCart(Long userId) {
-        Cart cart = cartRepository.findByUserId(userId).orElseThrow(() -> new RuntimeException("Resource Not Found"));
+        Cart cart = cartRepository.findByUserId(userId).orElseThrow(() -> new ResourceNotFoundException("Resource Not Found"));
         cart.getItems().clear();
         cartRepository.save(cart);
     }
