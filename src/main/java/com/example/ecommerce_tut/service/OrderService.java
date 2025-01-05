@@ -6,14 +6,13 @@ import com.example.ecommerce_tut.exception.ResourceNotFoundException;
 import com.example.ecommerce_tut.mapper.CartMapper;
 import com.example.ecommerce_tut.mapper.OrderMapper;
 import com.example.ecommerce_tut.model.*;
-import com.example.ecommerce_tut.repository.CartRepository;
 import com.example.ecommerce_tut.repository.OrderRepository;
 import com.example.ecommerce_tut.repository.ProductRepository;
 import com.example.ecommerce_tut.repository.UserRepository;
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.mail.MailException;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -29,43 +28,56 @@ public class OrderService {
     private final OrderMapper orderMapper;
     private final CartMapper cartMapper;
     private final CartService cartService;
+    private final EmailService emailService;
 
-    @Transactional
-    public OrderDTO createOrder(Long userId, String address, String phoneNumber) {
-        User user = userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User Not Found"));
+    public OrderDTO createOrder(Long userId, String address, String phone) {
+        User user = userRepository.findById(userId).orElseThrow(() -> new ResourceNotFoundException("User Not Found"));
         CartDTO cartDTO = cartService.getCart(userId);
         Cart cart = cartMapper.toEntity(cartDTO);
-        if (cartDTO.getItems().isEmpty()) throw new IllegalStateException("Cannot create an order with an empty cart");
         Order order = new Order();
         order.setUser(user);
         order.setAddress(address);
-        order.setPhoneNumber(phoneNumber);
         order.setCreatedAt(LocalDateTime.now());
         order.setStatus(OrderStatus.PREPARING);
 
-        List<OrderItem> orderItems = createOrderItems(cart, order);
-        order.setItems(orderItems);
-        Order savedOrder = orderRepository.save(order);
-        cartService.clearCart(userId);
+        List<OrderItem> creatOrderItems = createOrderItems(order, cart);
+        order.setItems(creatOrderItems);
 
-        return orderMapper.toDto(savedOrder);
+        try {
+            emailService.sendOrderConfirmationMail(order);
+        }catch (MailException e){
+            logger.error(e.getMessage());
+        }
+        return orderMapper.toDto(orderRepository.save(order));
     }
 
-    private List<OrderItem> createOrderItems(Cart cart, Order order) {
-        return cart.getItems().stream().map(cartItem -> {
-            Product product = productRepository.findById(cartItem.getProduct().getId()).orElseThrow(() -> new ResourceNotFoundException("Product Not Found"));
+    private List<OrderItem> createOrderItems(Order order, Cart cart) {
+        return cart.getItems().stream().map(item -> {
+            Product product = productRepository.findById(item.getProduct().getId()).orElseThrow(() -> new ResourceNotFoundException("Product Not Found"));
             if (product.getQuantity() == null) {
-                throw new IllegalStateException("Product quantity is not set for product");
+                throw new IllegalStateException("Product Quantity Not Found");
             }
-            if (product.getQuantity() < cartItem.getQuantity()) {
-                throw new RuntimeException("Not enough stock for products");
+            if (product.getQuantity() < item.getQuantity()) {
+                throw new IllegalStateException("Product Quantity Not Found");
             }
-            product.setQuantity(product.getQuantity() - cartItem.getQuantity());
+            product.setQuantity(product.getQuantity() - item.getQuantity());
             productRepository.save(product);
-
-            return new OrderItem(null, order, product, cartItem.getQuantity(), product.getPrice());
+            return new OrderItem(null, order, product, item.getQuantity(), product.getPrice());
         }).toList();
     }
 
+    public List<OrderDTO> getAllOrders() {
+        return this.orderMapper.toDTOs(orderRepository.findAll());
+    }
+
+    public List<OrderDTO> getUserOrders(Long userId) {
+        return this.orderMapper.toDTOs(orderRepository.findByUserId(userId));
+    }
+
+    public OrderDTO updateOrderStatus(Long orderId, OrderStatus status) {
+        Order order = orderRepository.findById(orderId).orElseThrow(() -> new ResourceNotFoundException("Order Not Found"));
+        order.setStatus(status);
+        return orderMapper.toDto(orderRepository.save(order));
+    }
 }
 
