@@ -20,7 +20,7 @@ public class EmailService {
         message.setFrom(from);
         message.setTo(order.getAddress());
         message.setSubject("Order Confirmation");
-        message.setText("Your order has been confirmed. Order Id : " + order.getId());
+        message.setText("Your order has been placed successfully.");
 
         mailSender.send(message);
     }

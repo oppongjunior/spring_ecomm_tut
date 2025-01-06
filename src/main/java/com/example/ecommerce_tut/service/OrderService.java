@@ -34,6 +34,9 @@ public class OrderService {
         User user = userRepository.findById(userId).orElseThrow(() -> new ResourceNotFoundException("User Not Found"));
         CartDTO cartDTO = cartService.getCart(userId);
         Cart cart = cartMapper.toEntity(cartDTO);
+        if(cart.getItems().isEmpty()){
+            throw new RuntimeException("Cart is Empty");
+        }
         Order order = new Order();
         order.setUser(user);
         order.setAddress(address);
@@ -58,7 +61,7 @@ public class OrderService {
                 throw new IllegalStateException("Product Quantity Not Found");
             }
             if (product.getQuantity() < item.getQuantity()) {
-                throw new IllegalStateException("Product Quantity Not Found");
+                throw new IllegalStateException("Quantity Not Enough");
             }
             product.setQuantity(product.getQuantity() - item.getQuantity());
             productRepository.save(product);
