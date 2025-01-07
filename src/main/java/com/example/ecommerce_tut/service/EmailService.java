@@ -1,6 +1,7 @@
 package com.example.ecommerce_tut.service;
 
 import com.example.ecommerce_tut.model.Order;
+import com.example.ecommerce_tut.model.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
@@ -24,4 +25,14 @@ public class EmailService {
 
         mailSender.send(message);
     }
+    public void sendConfirmationCode(User user){
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setFrom(from);
+        message.setTo(user.getEmail());
+        message.setSubject("Confirm your email");
+        message.setText("Please confirm your email by entering this code " + user.getConfirmationCode());
+
+        mailSender.send(message);
+    }
+
 }

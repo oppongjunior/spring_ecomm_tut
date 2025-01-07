@@ -32,9 +32,12 @@ public class OrderService {
 
     public OrderDTO createOrder(Long userId, String address, String phone) {
         User user = userRepository.findById(userId).orElseThrow(() -> new ResourceNotFoundException("User Not Found"));
+        if (!user.isEmailConfirmation()) {
+            throw new IllegalStateException("Email not confirmed. Please confirm email before order");
+        }
         CartDTO cartDTO = cartService.getCart(userId);
         Cart cart = cartMapper.toEntity(cartDTO);
-        if(cart.getItems().isEmpty()){
+        if (cart.getItems().isEmpty()) {
             throw new RuntimeException("Cart is Empty");
         }
         Order order = new Order();
@@ -48,7 +51,7 @@ public class OrderService {
 
         try {
             emailService.sendOrderConfirmationMail(order);
-        }catch (MailException e){
+        } catch (MailException e) {
             logger.error(e.getMessage());
         }
         return orderMapper.toDto(orderRepository.save(order));
